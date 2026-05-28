@@ -104,4 +104,4 @@ async function resetUsedTime() {
 loadTimeData();
 
 // Auto-refresh every 3 seconds
-setInterval(loadTimeData, 3000);
+setInterval(loadTimeData, 1000);
