@@ -16,9 +16,3 @@ buildNumber.properties
 # JDT-specific (Eclipse Java Development Tools)
 .classpath
 
-target/
-   node_modules/
-   dist/
-   .idea/
-   *.class
-   *.jar
