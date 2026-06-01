@@ -8,6 +8,7 @@ Track IDE coding time and earn browsing time on entertainment websites.
 - Java 11+
 - Node.js 16+
 - Google Chrome
+- Maven 
 
 ### Setup (3 steps)
 
