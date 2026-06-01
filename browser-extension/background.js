@@ -4,15 +4,17 @@ const SERVER_URL = 'http://localhost:8080/time-data';
 const CHECK_INTERVAL = 5000; // Check server every 5 seconds
 
 // Websites to block (you can customize this)
-const BLOCKED_SITES = [
-  'netflix.com',
-  'instagram.com',
-  'facebook.com',
-  'youtube.com',
-  'twitter.com',
-  'reddit.com',
-  'tiktok.com'
-];
+// const BLOCKED_SITES = [
+//   'netflix.com',
+//   'instagram.com',
+//   'facebook.com',
+//   'youtube.com',
+//   'twitter.com',
+//   'reddit.com',
+//   'tiktok.com'
+// ];
+
+let BLOCKED_SITES = [];
 
 // State management
 let timeData = {
@@ -37,6 +39,20 @@ async function fetchTimeData() {
   } catch (error) {
     console.error('Error fetching time data:', error);
     return null;
+  }
+}
+
+async function fetchConfig() {
+  try {
+    const response = await fetch('http://localhost:8080/config');
+    const config = await response.json();
+
+    BLOCKED_SITES = config.blockedSites || [];
+
+    console.log('Loaded config:', config);
+
+  } catch (error) {
+    console.error('Failed to load config:', error);
   }
 }
 
@@ -151,8 +167,10 @@ setInterval(async () => {
 
 // Periodic time data fetch from server
 setInterval(updateTimeBalance, CHECK_INTERVAL);
+setInterval(fetchConfig, 10000);
 
 // Initial fetch on startup
+fetchConfig();
 updateTimeBalance();
 
 // Listen for messages from popup

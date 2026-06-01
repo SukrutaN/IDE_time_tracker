@@ -24,13 +24,19 @@ public class TrackingServer {
     private static final int PORT = 8080;
     private static final String DATA_FILE = "ide_time_data.json";
     private final Gson gson = new Gson();
+    private final AppConfig config;
+
+    public TrackingServer() {
+    this.config = ConfigLoader.loadConfig();
+}
     
     public void start() throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
         
         // Endpoint to get tracking data
         server.createContext("/time-data", new TimeDataHandler());
-        
+        server.createContext("/config", new ConfigHandler());
+        server.createContext("/health", new HealthHandler());        
         // Start server
         server.setExecutor(null);
         server.start();
@@ -65,7 +71,12 @@ public class TrackingServer {
                         IDETracker.TrackingData data = gson.fromJson(json, IDETracker.TrackingData.class);
                         
                         // Calculate earned browse time (1 min per 2 min coding)
-                        double earnedSeconds = data.totalSeconds / 2.0;
+                        //double earnedSeconds = data.totalSeconds / 2.0;
+
+                        AppConfig config = ConfigLoader.loadConfig();
+
+double earnedSeconds =
+        data.totalSeconds * config.browseToCodeRatio;
                         
                         // Create response JSON
                         JsonObject response = new JsonObject();
@@ -107,6 +118,51 @@ public class TrackingServer {
             }
         }
     }
+
+    /**
+ * Handler for /config endpoint
+ */
+class ConfigHandler implements HttpHandler {
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+
+        AppConfig config = ConfigLoader.loadConfig();
+
+        String response = gson.toJson(config);
+
+        exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+        exchange.getResponseHeaders().add("Content-Type", "application/json");
+
+        exchange.sendResponseHeaders(200, response.getBytes().length);
+
+        OutputStream os = exchange.getResponseBody();
+
+        os.write(response.getBytes());
+
+        os.close();
+    }
+}
+
+class HealthHandler implements HttpHandler {
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+
+        String response = "{\"status\":\"ok\"}";
+
+        exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+        exchange.getResponseHeaders().add("Content-Type", "application/json");
+
+        exchange.sendResponseHeaders(200, response.getBytes().length);
+
+        OutputStream os = exchange.getResponseBody();
+
+        os.write(response.getBytes());
+
+        os.close();
+    }
+}
     
     public static void main(String[] args) {
         try {

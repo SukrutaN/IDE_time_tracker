@@ -1,14 +1,30 @@
 // popup.js - Controls the extension popup UI
 
-const BLOCKED_SITES = [
-  'netflix.com',
-  'instagram.com',
-  'facebook.com',
-  'youtube.com',
-  'twitter.com',
-  'reddit.com',
-  'tiktok.com'
-];
+// const BLOCKED_SITES = [
+//   'netflix.com',
+//   'instagram.com',
+//   'facebook.com',
+//   'youtube.com',
+//   'twitter.com',
+//   'reddit.com',
+//   'tiktok.com'
+// ];
+
+async function fetchConfig() {
+
+  try {
+
+    const response = await fetch('http://localhost:8080/config');
+
+    return await response.json();
+
+  } catch (error) {
+
+    console.error('Failed to fetch config:', error);
+
+    return null;
+  }
+}
 
 // Load and display time data
 async function loadTimeData() {
@@ -18,6 +34,7 @@ async function loadTimeData() {
     // Get time data from background script
     const response = await chrome.runtime.sendMessage({ action: 'getTimeData' });
     const timeData = response.timeData;
+    const config = await fetchConfig();
     
     if (!timeData || !timeData.lastUpdated) {
       content.innerHTML = `
@@ -54,6 +71,12 @@ async function loadTimeData() {
             ${remainingMins}:${remainingSecs.toString().padStart(2, '0')} min
           </span>
         </div>
+        <div class="status-item">
+  <span class="status-label">⚙️ Ratio:</span>
+  <span class="status-value">
+    1 coding sec → ${config?.browseToCodeRatio || 0} browse sec
+  </span>
+</div>
         <div class="progress-bar">
           <div class="progress-fill" style="width: ${progressPercent}%"></div>
         </div>
@@ -62,9 +85,16 @@ async function loadTimeData() {
       <div class="blocked-sites">
         <h2>🚫 Blocked Sites:</h2>
         <div class="site-list">
-          ${BLOCKED_SITES.map(site => `• ${site}`).join('<br>')}
+          ${config?.blockedSites?.map(site => `• ${site}`).join('<br>') || 'No blocked sites'}
         </div>
       </div>
+
+      <div class="blocked-sites">
+  <h2>💻 Tracked IDEs:</h2>
+  <div class="site-list">
+    ${config?.trackedIDEKeywords?.map(ide => `• ${ide}`).join('<br>') || 'No IDEs'}
+  </div>
+</div>
       
       <div class="actions">
         <button id="refresh-btn">🔄 Refresh</button>

@@ -7,6 +7,7 @@ import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinUser;
 
+
 import java.io.*;
 import java.nio.file.*;
 import java.time.LocalDateTime;
@@ -19,30 +20,32 @@ import java.util.*;
  */
 public class IDETracker {
     
-    private static final int CHECK_INTERVAL_MS = 1000; // Check every second
+    //private static final int config.checkIntervalMs = 1000; // Check every second
     private static final String DATA_FILE = "ide_time_data.json";
     
     private final Path dataFilePath;
     private final Gson gson;
     private TrackingData data;
+    //private final AppConfig config;
     
     // List of IDE process/window names to track
-    private final Set<String> ideNames = new HashSet<>(Arrays.asList(
-        "code", "Code",           // VS Code
-        "cursor", "Cursor",       // Cursor
-        "intellij", "idea",       // IntelliJ IDEA
-        "pycharm", "PyCharm",     // PyCharm
-        "webstorm", "WebStorm",   // WebStorm
-        "android studio",         // Android Studio
-        "eclipse", "Eclipse",     // Eclipse
-        "netbeans", "NetBeans",   // NetBeans
-        "sublime", "Sublime",     // Sublime Text
-        "vim", "nvim", "emacs"    // Terminal editors
-    ));
+    // private final Set<String> ideNames = new HashSet<>(Arrays.asList(
+    //     "code", "Code",           // VS Code
+    //     "cursor", "Cursor",       // Cursor
+    //     "intellij", "idea",       // IntelliJ IDEA
+    //     "pycharm", "PyCharm",     // PyCharm
+    //     "webstorm", "WebStorm",   // WebStorm
+    //     "android studio",         // Android Studio
+    //     "eclipse", "Eclipse",     // Eclipse
+    //     "netbeans", "NetBeans",   // NetBeans
+    //     "sublime", "Sublime",     // Sublime Text
+    //     "vim", "nvim", "emacs"    // Terminal editors
+    // ));
     
     public IDETracker() {
         this.dataFilePath = Paths.get(System.getProperty("user.home"), DATA_FILE);
         this.gson = new GsonBuilder().setPrettyPrinting().create();
+        //this.config = ConfigLoader.loadConfig();
         loadData();
     }
     
@@ -153,8 +156,8 @@ public class IDETracker {
     /**
      * Check if current window is an IDE
      */
-    private boolean isIDEActive(String windowName) {
-        for (String ideName : ideNames) {
+    private boolean isIDEActive(String windowName, AppConfig config) {
+        for (String ideName : config.trackedIDEKeywords) {
             if (windowName.contains(ideName.toLowerCase())) {
                 return true;
             }
@@ -166,7 +169,8 @@ public class IDETracker {
      * Calculate browse time earned (1 min browse per 2 min coding)
      */
     public double getEarnedBrowseTime() {
-        return data.totalSeconds / 2.0;
+        AppConfig config = ConfigLoader.loadConfig();
+        return data.totalSeconds * config.browseToCodeRatio;
     }
     
     /**
@@ -195,10 +199,11 @@ public class IDETracker {
         
         while (true) {
             try {
+                AppConfig config = ConfigLoader.loadConfig();
                 String windowName = getActiveWindowName();
                 
-                if (isIDEActive(windowName)) {
-                    data.totalSeconds += CHECK_INTERVAL_MS / 1000;
+                if (isIDEActive(windowName, config)) {
+                    data.totalSeconds += config.checkIntervalMs / 1000;
                     
                     // Print update every 10 seconds
                     if (data.totalSeconds % 10 == 0) {
@@ -209,14 +214,14 @@ public class IDETracker {
                     }
                     
                     // Save every 30 seconds
-                    saveCounter += CHECK_INTERVAL_MS / 1000;
+                    saveCounter += config.checkIntervalMs / 1000;
                     if (saveCounter >= 30) {
                         saveData();
                         saveCounter = 0;
                     }
                 }
                 
-                Thread.sleep(CHECK_INTERVAL_MS);
+                Thread.sleep(config.checkIntervalMs);
                 
             } catch (InterruptedException e) {
                 break;
@@ -246,20 +251,46 @@ public class IDETracker {
         List<String> sessions;
     }
     
+    // public static void main(String[] args) {
+    //     // Print OS-specific setup instructions
+    //     if (isWindows()) {
+    //         System.out.println("Windows detected - JNA will be used for window detection");
+    //     } else if (isMac()) {
+    //         System.out.println("macOS detected - using AppleScript for window detection");
+    //     } else if (isLinux()) {
+    //         System.out.println("Linux detected - make sure xdotool is installed:");
+    //         System.out.println("  sudo apt-get install xdotool");
+    //     }
+        
+    //     System.out.println("\n" + "=".repeat(50) + "\n");
+        
+    //     IDETracker tracker = new IDETracker();
+    //     tracker.run();
+    // }
+
     public static void main(String[] args) {
-        // Print OS-specific setup instructions
-        if (isWindows()) {
-            System.out.println("Windows detected - JNA will be used for window detection");
-        } else if (isMac()) {
-            System.out.println("macOS detected - using AppleScript for window detection");
-        } else if (isLinux()) {
-            System.out.println("Linux detected - make sure xdotool is installed:");
-            System.out.println("  sudo apt-get install xdotool");
-        }
-        
-        System.out.println("\n" + "=".repeat(50) + "\n");
-        
+
+    try {
+
+        System.out.println("Starting tracker...");
+
         IDETracker tracker = new IDETracker();
+
+        System.out.println("Starting HTTP server...");
+
+        TrackingServer server = new TrackingServer();
+
+        server.start();
+
+        System.out.println("HTTP server started successfully");
+
         tracker.run();
+
+    } catch (Exception e) {
+
+        System.err.println("Startup failed");
+
+        e.printStackTrace();
     }
+}
 }

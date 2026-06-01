@@ -1,0 +1,18 @@
+{
+  "blockedSites": [
+    "youtube.com",
+    "instagram.com",
+    "reddit.com",
+    "github.com",
+    "geeksforgeeks.org"
+  ],
+  "trackedIDEKeywords": [
+    "code",
+    "cursor",
+    "intellij",
+    "pycharm"
+  ],
+  "browseToCodeRatio": 0.8,
+  "serverPort": 8080,
+  "checkIntervalMs": 1000
+}
